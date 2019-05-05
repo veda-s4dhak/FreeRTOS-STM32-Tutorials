@@ -58,7 +58,14 @@ void StartDefaultTask(void const * argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/* Used as a loop counter to create a very crude delay. */
+#define mainDELAY_LOOP_COUNT		( 0xffffff )
 
+uint32_t task1_heartbeat = 0;
+uint32_t task2_heartbeat = 0;
+
+/* The task functions. */
+void vTaskFunction( void *pvParameters );
 /* USER CODE END 0 */
 
 /**
@@ -114,7 +121,14 @@ int main(void)
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+  xTaskCreate( vTaskFunction, /* Pointer to the function that implements the task. */
+			   "Task 1", /* Text name for the task. This is to facilitate debugging only. */
+			   50, /* Stack depth - small microcontrollers will use much less stack than this. */
+			   (void*)&task1_heartbeat, /* Pass the text to be printed into the task using the task parameter. */
+			   1, /* This task will run at priority 1. */
+			   NULL ); /* The task handle is not used in this example. */
+
+  xTaskCreate( vTaskFunction, "Task 2", 50, (void*)&task2_heartbeat, 1, NULL );
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -175,7 +189,27 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void vTaskFunction( void *pvParameters )
+{
+volatile uint32_t ul;
+uint32_t *task_heartbeat = (uint32_t*) pvParameters;
 
+	/* As per most tasks, this task is implemented in an infinite loop. */
+	for( ;; )
+	{
+		/* Print out the name of this task. */
+//		vPrintString( pcTaskName );
+
+		/* Delay for a period. */
+		for( ul = 0; ul < mainDELAY_LOOP_COUNT; ul++ )
+		{
+			*task_heartbeat = *task_heartbeat + 1;
+			/* This loop is just a very crude delay implementation.  There is
+			nothing to do in here.  Later exercises will replace this crude
+			loop with a proper delay/sleep function. */
+		}
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
