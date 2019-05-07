@@ -18,3 +18,10 @@ FreeRTOSConfig.h.
 vTaskDelay() places the calling task into the Blocked state for a fixed number of tick interrupts.
 The task does not use any processing time while it is in the Blocked state, so the task only
 uses processing time when there is actually work to be done.
+
+Example 5. Converting the example tasks to use vTaskDelayUntil()
+
+The two tasks created in Example 4 are periodic tasks, but using vTaskDelay() does not
+guarantee that the frequency at which they run is fixed, as the time at which the tasks leave
+the Blocked state is relative to when they call vTaskDelay(). Converting the tasks to use
+vTaskDelayUntil() instead of vTaskDelay() solves this potential problem.
