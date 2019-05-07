@@ -61,8 +61,8 @@ void StartDefaultTask(void const * argument);
 #define mainDELAY_LOOP_COUNT		( 0xffffff )
 
 /* The task functions. */
-void vTask1( void *pvParameters );
-void vTask2( void *pvParameters );
+void vContinuousProcessingTask( void *pvParameters );
+void vPeriodicTask( void *pvParameters );
 /* USER CODE END 0 */
 
 /**
@@ -118,14 +118,10 @@ int main(void)
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  xTaskCreate(	vTask1,	   /* Pointer to the function that implements the task. */
-				"Task 1",  /* Text name for the task.  This is to facilitate debugging only. */
-				50,		   /* Stack depth - most small microcontrollers will use much less stack than this. */
-				NULL,	   /* We are not using the task parameter. */
-				1,		   /* This task will run at priority 1. */
-				NULL );	   /* We are not using the task handle. */
+  xTaskCreate( vContinuousProcessingTask, "Task 1", 50, NULL, 1, NULL );
+  xTaskCreate( vContinuousProcessingTask, "Task 2", 50, NULL, 1, NULL );
 
-  xTaskCreate( vTask2, "Task 2", 50, NULL, 2, NULL );
+  xTaskCreate( vPeriodicTask, "Task 3", 50, NULL, 2, NULL );
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -187,63 +183,41 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-void vTask1( void *pvParameters )
+void vContinuousProcessingTask( void *pvParameters )
 {
-const char *pcTaskName = "Task 1 is running\r\n";
-volatile uint32_t ul;
-volatile uint32_t task_heartbeat = 0;
-const TickType_t xDelay250ms = pdMS_TO_TICKS( 250 );
+	char *pcTaskName;
+	pcTaskName = ( char * ) pvParameters;
+	volatile uint32_t task_heartbeat = 0;
 
 	/* As per most tasks, this task is implemented in an infinite loop. */
 	for( ;; )
 	{
-		/* Print out the name of this task. */
-//		vPrintString( pcTaskName );
-
-		/* Delay for a period. */
-		for( ul = 0; ul < mainDELAY_LOOP_COUNT; ul++ )
-		{
-			task_heartbeat = task_heartbeat + 1;
-			/* Delay for a period. This time a call to vTaskDelay() is used which places
-			 the task into the Blocked state until the delay period has expired. The
-			 parameter takes a time specified in ‘ticks’, and the pdMS_TO_TICKS() macro
-			 is used (where the xDelay250ms constant is declared) to convert 250
-			 milliseconds into an equivalent time in ticks. */
-			vTaskDelay(xDelay250ms);
-		}
+		/* Print out the name of this task. This task just does this repeatedly
+		without ever blocking or delaying. */
+		task_heartbeat = task_heartbeat + 1;
 	}
 }
-/*-----------------------------------------------------------*/
 
-void vTask2( void *pvParameters )
+void vPeriodicTask( void *pvParameters )
 {
-const char *pcTaskName = "Task 2 is running\r\n";
-volatile uint32_t ul;
-volatile uint32_t task_heartbeat = 0;
-TickType_t xLastWakeTime;
+	TickType_t xLastWakeTime;
+	const TickType_t xDelay10ms = pdMS_TO_TICKS( 10 );
+	volatile uint32_t task_heartbeat = 0;
 
+	/* The xLastWakeTime variable needs to be initialized with the current tick
+	count. Note that this is the only time the variable is explicitly written to.
+	After this xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	API function. */
+	xLastWakeTime = xTaskGetTickCount();
 	/* As per most tasks, this task is implemented in an infinite loop. */
 	for( ;; )
 	{
-		/* Print out the name of this task. */
-//		vPrintString( pcTaskName );
-//		xLastWakeTime = xTaskGetTickCount();
-		xLastWakeTime = xTaskGetTickCount();
+		/* Increment heartbeat */
+		task_heartbeat = task_heartbeat + 10;
 
-
-		/* Delay for a period. */
-		for( ul = 0; ul < mainDELAY_LOOP_COUNT; ul++ )
-		{
-			task_heartbeat = task_heartbeat + 2;
-
-			/* Delay for a period. This time a call to vTaskDelay() is used which places
-			 the task into the Blocked state until the delay period has expired. The
-			 parameter takes a time specified in ‘ticks’, and the pdMS_TO_TICKS() macro
-			 is used (where the xDelay250ms constant is declared) to convert 250
-			 milliseconds into an equivalent time in ticks. */
-//			vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS(250) );
-			vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 5 ) );
-		}
+		/* The task should execute every 3 milliseconds exactly – see the
+		declaration of xDelay3ms in this function. */
+		vTaskDelayUntil( &xLastWakeTime, xDelay10ms );
 	}
 }
 
